@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Murder at Midnight</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a12; --surface: #12121e; --surface2: #1a1a2a;
+      --border: #2a2a3e; --gold: #c9a84c; --gold-dim: #7a6228;
+      --text: #e8e4d8; --text-dim: #888a96; --red: #c94c4c; --teal: #4cc9a8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+    .screen { display: none; flex-direction: column; flex: 1; min-height: 100vh; }
+    .screen.active { display: flex; }
+
+    /* Candle animation */
+    .flame-outer { transform-origin: 450px 155px; animation: fla 1.4s ease-in-out infinite alternate; }
+    .flame-mid   { transform-origin: 450px 153px; animation: flb 1.1s ease-in-out infinite alternate-reverse; }
+    .flame-inner { transform-origin: 450px 156px; animation: flc 0.9s ease-in-out infinite alternate; }
+    .glow-pulse  { animation: glw 2.2s ease-in-out infinite alternate; }
+    @keyframes fla { 0%{transform:scaleX(1) scaleY(1) rotate(-3deg);opacity:.85} 40%{transform:scaleX(.85) scaleY(1.12) rotate(2deg);opacity:.9} 100%{transform:scaleX(1.1) scaleY(.92) rotate(3deg);opacity:.8} }
+    @keyframes flb { 0%{transform:scaleX(1) scaleY(1) rotate(2deg);opacity:1} 60%{transform:scaleX(1.15) scaleY(.88) rotate(-2deg);opacity:.85} 100%{transform:scaleX(.9) scaleY(1.1) rotate(1deg);opacity:.95} }
+    @keyframes flc { 0%{transform:scaleY(1);opacity:1} 100%{transform:scaleY(1.2);opacity:.88} }
+    @keyframes glw { from{opacity:.55} to{opacity:.9} }
+
+    /* ── INTRO ── */
+    #intro { align-items:center; justify-content:flex-start; text-align:center; padding:2.5rem 2rem; background:radial-gradient(ellipse at center,#1a0a0a 0%,var(--bg) 65%); overflow-y:auto; }
+    .scene-wrap { width:min(560px,90vw); margin-bottom:1.75rem; border:1px solid var(--border); overflow:hidden; }
+    .scene-wrap svg { display:block; width:100%; height:auto; }
+    .ornament { color:var(--gold); font-size:1.4rem; letter-spacing:.4em; margin-bottom:1rem; }
+    #intro h1 { font-family:'Playfair Display',serif; font-size:clamp(1.8rem,6vw,3.2rem); color:var(--gold); letter-spacing:.04em; margin-bottom:.4rem; }
+    .subtitle { font-family:'Playfair Display',serif; font-style:italic; color:var(--text-dim); font-size:1rem; margin-bottom:.4rem; }
+    .setting-tag { font-size:.72rem; letter-spacing:.15em; text-transform:uppercase; color:var(--gold-dim); margin-bottom:1.5rem; }
+    .setup { max-width:520px; line-height:1.9; color:var(--text-dim); margin-bottom:2rem; font-size:.9rem; }
+    .setup strong { color:var(--text); }
+    .rule { border-top:1px solid var(--border); width:100px; margin:0 auto 1.5rem; }
+    .btn-primary { background:var(--gold); color:#08080f; border:none; padding:.85rem 2.75rem; font-family:'Inter',sans-serif; font-weight:600; font-size:.85rem; letter-spacing:.18em; text-transform:uppercase; cursor:pointer; transition:all .2s; }
+    .btn-primary:hover { background:#ddb85a; transform:translateY(-1px); }
+    .btn-primary:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+
+    /* ── GAME HEADER ── */
+    .game-header { background:var(--surface); border-bottom:1px solid var(--border); padding:.6rem 1.25rem; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; gap:1rem; }
+    .header-left { display:flex; align-items:center; gap:.75rem; }
+    .mag-icon { opacity:.5; flex-shrink:0; }
+    .game-title { font-family:'Playfair Display',serif; color:var(--gold); font-size:.95rem; }
+    .game-tag { font-size:.6rem; letter-spacing:.15em; text-transform:uppercase; color:var(--text-dim); }
+    .header-right { display:flex; align-items:center; gap:.75rem; }
+
+    /* Question counter */
+    .q-counter { font-size:.75rem; font-weight:500; padding:.3rem .7rem; border:1px solid var(--border); color:var(--text-dim); transition:all .3s; white-space:nowrap; }
+    .q-counter.warn { border-color:#c97a4c; color:#c97a4c; }
+    .q-counter.danger { border-color:var(--red); color:var(--red); animation:pulse-red 1s ease-in-out infinite alternate; }
+    .q-counter.done { border-color:var(--red); color:var(--red); background:rgba(201,76,76,.08); }
+    @keyframes pulse-red { from{opacity:.7} to{opacity:1} }
+
+    .btn-accuse { background:transparent; color:var(--red); border:1px solid var(--red); padding:.45rem 1.1rem; font-family:'Inter',sans-serif; font-size:.72rem; font-weight:500; letter-spacing:.1em; text-transform:uppercase; cursor:pointer; transition:all .2s; white-space:nowrap; }
+    .btn-accuse:hover { background:var(--red); color:white; }
+    .btn-accuse.pulse { animation:pulse-accuse 1.4s ease-in-out infinite; }
+    @keyframes pulse-accuse { 0%,100%{box-shadow:0 0 0 0 rgba(201,76,76,.4)} 50%{box-shadow:0 0 0 6px rgba(201,76,76,0)} }
+
+    /* ── GAME LAYOUT ── */
+    #game { min-height:0; }
+    .game-body { display:grid; grid-template-columns:185px 220px 1fr; flex:1; overflow:hidden; height:calc(100vh - 47px); }
+
+    /* ── SUSPECTS ── */
+    .suspect-list { background:var(--surface); border-right:1px solid var(--border); overflow-y:auto; padding:1rem 0; }
+    .panel-label { font-size:.6rem; letter-spacing:.18em; text-transform:uppercase; color:var(--gold-dim); padding:0 1rem .75rem; }
+    .s-card { display:flex; align-items:center; gap:.65rem; padding:.65rem 1rem; cursor:pointer; transition:background .15s; border-left:3px solid transparent; user-select:none; }
+    .s-card:hover { background:var(--surface2); }
+    .s-card.active { background:var(--surface2); border-left-color:var(--gold); }
+    .s-avatar { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Playfair Display',serif; font-size:.95rem; font-weight:bold; flex-shrink:0; color:rgba(255,255,255,.85); box-shadow:0 0 0 2px rgba(255,255,255,.05); }
+    .s-info { min-width:0; }
+    .s-name { font-size:.8rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .s-role { font-size:.66rem; color:var(--text-dim); }
+    .s-dots { display:flex; gap:3px; margin-top:4px; flex-wrap:wrap; }
+    .dot { width:4px; height:4px; border-radius:50%; background:var(--border); transition:background .2s; }
+    .dot.lit { background:var(--gold-dim); }
+
+    /* ── CASE NOTES ── */
+    .case-notes { background:var(--surface); border-right:1px solid var(--border); overflow-y:auto; padding:1rem; }
+    .notes-section { margin-bottom:1.5rem; }
+    .notes-title { font-size:.6rem; letter-spacing:.18em; text-transform:uppercase; color:var(--gold-dim); margin-bottom:.75rem; padding-bottom:.4rem; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:.4rem; }
+    .fact { font-size:.72rem; line-height:1.55; color:var(--text-dim); margin-bottom:.6rem; padding-left:.75rem; position:relative; }
+    .fact::before { content:'—'; position:absolute; left:0; color:var(--border); }
+    .clue-entry { font-size:.72rem; line-height:1.5; color:var(--teal); padding:.55rem .7rem; margin-bottom:.6rem; background:rgba(76,201,168,.06); border-left:2px solid var(--teal); animation:fadeUp .3s ease; }
+    .clue-who { font-size:.63rem; font-weight:600; opacity:.75; margin-bottom:.2rem; }
+    .no-clues { font-size:.72rem; color:var(--border); font-style:italic; }
+    .new-evidence { font-size:.72rem; line-height:1.5; color:var(--gold); padding:.55rem .7rem; margin-bottom:.6rem; background:rgba(201,168,76,.07); border-left:2px solid var(--gold-dim); animation:fadeUp .4s ease; }
+    .ev-label { font-size:.6rem; font-weight:600; opacity:.7; margin-bottom:.2rem; letter-spacing:.08em; text-transform:uppercase; }
+    .ev-flash { animation:flash-gold .8s ease .1s; }
+    @keyframes flash-gold { 0%{box-shadow:0 0 0 0 rgba(201,168,76,0)} 40%{box-shadow:0 0 12px 3px rgba(201,168,76,.3)} 100%{box-shadow:0 0 0 0 rgba(201,168,76,0)} }
+
+    /* ── INTERROGATION ── */
+    .interrogation { display:flex; flex-direction:column; overflow:hidden; background:var(--bg); position:relative; }
+    .interrogation::before { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:260px; height:260px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='none' stroke='%23ffffff' stroke-width='.5' opacity='.03'/%3E%3Ccircle cx='50' cy='50' r='35' fill='none' stroke='%23ffffff' stroke-width='.5' opacity='.03'/%3E%3Ccircle cx='50' cy='50' r='25' fill='none' stroke='%23ffffff' stroke-width='.5' opacity='.03'/%3E%3Ccircle cx='50' cy='50' r='15' fill='none' stroke='%23ffffff' stroke-width='.5' opacity='.03'/%3E%3C/svg%3E"); background-size:contain; pointer-events:none; }
+    .interro-placeholder { flex:1; display:flex; align-items:center; justify-content:center; text-align:center; color:var(--text-dim); font-family:'Playfair Display',serif; font-style:italic; font-size:.95rem; padding:2rem; line-height:1.8; position:relative; z-index:1; }
+    .interro-main { flex:1; display:flex; flex-direction:column; padding:1.5rem; overflow-y:auto; position:relative; z-index:1; }
+    .i-header { display:flex; align-items:center; gap:1rem; padding-bottom:1.25rem; margin-bottom:1.25rem; border-bottom:1px solid var(--border); }
+    .i-avatar { width:50px; height:50px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Playfair Display',serif; font-size:1.25rem; font-weight:bold; color:rgba(255,255,255,.9); flex-shrink:0; box-shadow:0 0 0 3px rgba(255,255,255,.06),0 0 20px rgba(0,0,0,.5); }
+    .i-name { font-family:'Playfair Display',serif; font-size:1.2rem; color:var(--gold); }
+    .i-role { font-size:.72rem; color:var(--text-dim); margin-top:.15rem; }
+    .i-desc { font-size:.72rem; color:var(--text-dim); font-style:italic; margin-top:.2rem; }
+    .q-label { font-size:.6rem; letter-spacing:.18em; text-transform:uppercase; color:var(--text-dim); margin-bottom:.6rem; }
+    .q-btn { display:block; width:100%; text-align:left; background:var(--surface); border:1px solid var(--border); color:var(--text); padding:.6rem .9rem; margin-bottom:.4rem; cursor:pointer; font-family:'Inter',sans-serif; font-size:.8rem; transition:all .15s; line-height:1.4; }
+    .q-btn:hover:not(:disabled) { background:var(--surface2); border-color:var(--gold-dim); color:var(--gold); }
+    .q-btn:disabled { opacity:.3; cursor:default; }
+    .q-btn.asked { border-color:var(--gold-dim); background:rgba(201,168,76,.04); cursor:default; }
+    .answers { margin-top:1.25rem; }
+    .answer-block { margin-bottom:1.25rem; animation:fadeUp .3s ease; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+    .answer-q { font-size:.68rem; color:var(--gold-dim); letter-spacing:.04em; font-style:italic; margin-bottom:.35rem; }
+    .answer-text { font-family:'Playfair Display',serif; font-style:italic; font-size:.87rem; line-height:1.65; color:var(--text); }
+    .answer-text.suspicious { border-left:2px solid var(--teal); padding-left:.75rem; color:#d8f0e8; }
+
+    /* ── ACCUSATION ── */
+    #accuse { align-items:center; justify-content:center; padding:2rem; position:relative; overflow:hidden; }
+    #accuse::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse 60% 60% at 50% 0%,rgba(201,76,76,.12) 0%,transparent 70%),radial-gradient(ellipse at center,#150505 0%,#0a0a12 70%); pointer-events:none; }
+    .accuse-box { max-width:520px; width:100%; text-align:center; position:relative; z-index:1; }
+    .accuse-icon { margin-bottom:1rem; opacity:.6; }
+    .accuse-box h2 { font-family:'Playfair Display',serif; font-size:2rem; color:var(--red); margin-bottom:.4rem; }
+    .accuse-sub { color:var(--text-dim); font-size:.88rem; margin-bottom:2rem; line-height:1.6; }
+    .accuse-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:.75rem; margin-bottom:1.75rem; }
+    .accuse-card { background:var(--surface); border:2px solid var(--border); padding:1rem .75rem; cursor:pointer; transition:all .2s; }
+    .accuse-card:hover { border-color:rgba(201,76,76,.5); background:var(--surface2); }
+    .accuse-card.picked { border-color:var(--red); background:rgba(201,76,76,.08); }
+    .accuse-avatar { width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Playfair Display',serif; font-size:.95rem; font-weight:bold; color:rgba(255,255,255,.85); margin:0 auto .5rem; }
+    .accuse-name { font-size:.78rem; font-weight:500; }
+    .accuse-role { font-size:.63rem; color:var(--text-dim); margin-top:.15rem; }
+    .accuse-actions { display:flex; gap:1rem; justify-content:center; }
+    .btn-ghost { background:transparent; color:var(--text-dim); border:1px solid var(--border); padding:.6rem 1.5rem; font-family:'Inter',sans-serif; font-size:.82rem; cursor:pointer; transition:all .15s; }
+    .btn-ghost:hover { border-color:var(--text-dim); color:var(--text); }
+
+    /* ── RESULT ── */
+    #result { align-items:center; justify-content:center; padding:2rem; position:relative; overflow:hidden; }
+    #result.correct-bg::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse 50% 50% at 50% 0%,rgba(76,201,168,.08) 0%,transparent 70%); pointer-events:none; }
+    #result.wrong-bg::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse 50% 50% at 50% 0%,rgba(201,76,76,.08) 0%,transparent 70%); pointer-events:none; }
+    .result-box { max-width:580px; width:100%; text-align:center; position:relative; z-index:1; }
+    .stamp-wrap { margin-bottom:1.25rem; }
+    .stamp { display:inline-block; border:3px solid; padding:.3rem 1.2rem; font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:700; letter-spacing:.2em; text-transform:uppercase; transform:rotate(-6deg); opacity:0; animation:stamp-in .35s cubic-bezier(.22,1,.36,1) forwards .15s; }
+    .stamp.correct { color:var(--teal); border-color:var(--teal); text-shadow:0 0 20px rgba(76,201,168,.4); }
+    .stamp.wrong   { color:var(--red);  border-color:var(--red);  text-shadow:0 0 20px rgba(201,76,76,.4); }
+    @keyframes stamp-in { from{opacity:0;transform:rotate(-6deg) scale(2.5)} to{opacity:.85;transform:rotate(-6deg) scale(1)} }
+    #r-icon { margin:.5rem auto 1rem; display:block; width:fit-content; }
+    .verdict { font-family:'Playfair Display',serif; font-size:clamp(1.8rem,5vw,2.6rem); margin-bottom:.4rem; }
+    .verdict.correct { color:var(--teal); } .verdict.wrong { color:var(--red); }
+    .result-sub { color:var(--text-dim); font-size:.88rem; margin-bottom:2rem; }
+    .result-panel { background:var(--surface); border:1px solid var(--border); padding:1.5rem; text-align:left; margin-bottom:1.5rem; }
+    .result-panel-title { font-family:'Playfair Display',serif; color:var(--gold); font-size:1rem; margin-bottom:1rem; }
+    .killer-reveal { font-family:'Playfair Display',serif; font-size:1.2rem; color:var(--red); margin-bottom:.75rem; }
+    .killer-story { font-size:.87rem; line-height:1.75; color:var(--text-dim); }
+    .the-tell { margin-top:1.25rem; padding:.75rem 1rem; background:rgba(76,201,168,.07); border-left:2px solid var(--teal); font-size:.82rem; color:var(--teal); line-height:1.55; }
+    .tell-label { font-size:.6rem; letter-spacing:.15em; text-transform:uppercase; opacity:.75; margin-bottom:.25rem; }
+
+    /* ── SOLVER BOARD ── */
+    .solver-form-wrap { margin-bottom:1.25rem; }
+    .solver-form-label { font-size:.75rem; color:var(--teal); margin-bottom:.55rem; }
+    .solver-form { display:flex; gap:.6rem; justify-content:center; align-items:center; }
+    .solver-input { background:var(--surface); border:1px solid var(--border); color:var(--text); padding:.55rem .9rem; font-family:'Inter',sans-serif; font-size:.85rem; flex:1; max-width:240px; outline:none; transition:border-color .15s; }
+    .solver-input:focus { border-color:var(--teal); }
+    .solver-input::placeholder { color:var(--text-dim); }
+    .solver-board-panel { background:var(--surface); border:1px solid var(--border); padding:1.25rem 1.5rem; text-align:left; margin-bottom:1.5rem; }
+    .solver-board-title { font-family:'Playfair Display',serif; color:var(--gold); font-size:.9rem; margin-bottom:.9rem; display:flex; align-items:center; gap:.5rem; }
+    .solver-list { max-height:200px; overflow-y:auto; }
+    .solver-empty { font-size:.78rem; color:var(--text-dim); font-style:italic; }
+    .solver-entry { display:flex; align-items:baseline; gap:.65rem; padding:.35rem 0; border-bottom:1px solid var(--border); font-size:.78rem; }
+    .solver-entry:last-child { border-bottom:none; }
+    .solver-entry.newest { color:var(--teal); }
+    .solver-rank { color:var(--gold-dim); font-size:.65rem; min-width:18px; font-family:'Playfair Display',serif; flex-shrink:0; }
+    .solver-name { font-weight:500; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .solver-scenario { font-size:.67rem; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:110px; }
+    .solver-date { font-size:.65rem; color:var(--border); white-space:nowrap; flex-shrink:0; }
+
+    /* ── MOBILE ── */
+    @media (max-width:768px) {
+      .game-body { grid-template-columns:1fr; height:auto; overflow:visible; }
+      .suspect-list { border-right:none; border-bottom:1px solid var(--border); display:flex; flex-direction:row; overflow-x:auto; padding:.6rem; gap:.4rem; }
+      .panel-label { display:none; }
+      .s-card { flex-direction:column; padding:.6rem .5rem; border-left:none; border-bottom:3px solid transparent; min-width:62px; text-align:center; gap:.3rem; align-items:center; }
+      .s-card.active { border-left:none; border-bottom-color:var(--gold); }
+      .s-role { display:none; }
+      .case-notes { border-right:none; border-bottom:1px solid var(--border); }
+      .accuse-grid { grid-template-columns:repeat(2,1fr); }
+      .game-body { min-height:calc(100vh - 47px); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ INTRO -->
+<div id="intro" class="screen active">
+  <div class="scene-wrap" id="intro-scene"></div>
+  <div class="ornament">✦ &nbsp; ✦ &nbsp; ✦</div>
+  <h1 id="intro-title"></h1>
+  <p class="subtitle" id="intro-subtitle"></p>
+  <p class="setting-tag" id="intro-setting"></p>
+  <div class="rule"></div>
+  <p class="setup" id="intro-setup"></p>
+  <button class="btn-primary" onclick="startGame()">Begin Investigation</button>
+</div>
+
+<!-- ═══ GAME -->
+<div id="game" class="screen">
+  <div class="game-header">
+    <div class="header-left">
+      <svg class="mag-icon" width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <circle cx="9" cy="9" r="6.5" stroke="#c9a84c" stroke-width="1.5"/>
+        <line x1="14" y1="14" x2="20" y2="20" stroke="#c9a84c" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <div class="game-title" id="game-title"></div>
+        <div class="game-tag">Interrogation</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="q-counter" id="q-counter">12 questions left</div>
+      <button class="btn-accuse" id="btn-accuse" onclick="showAccuse()">Accuse →</button>
+    </div>
+  </div>
+
+  <div class="game-body">
+    <div class="suspect-list">
+      <div class="panel-label">Suspects</div>
+      <div id="s-list"></div>
+    </div>
+
+    <div class="case-notes">
+      <div class="notes-section">
+        <div class="notes-title">
+          <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="#c9a84c" stroke-width="1.2"/><circle cx="5" cy="5" r="1.5" fill="#c9a84c"/></svg>
+          Crime Scene
+        </div>
+        <div id="facts"></div>
+      </div>
+      <div class="notes-section" id="evidence-section" style="display:none">
+        <div class="notes-title">
+          <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="#c9a84c" stroke-width="1.2" stroke-dasharray="2 1.5"/></svg>
+          New Evidence
+        </div>
+        <div id="new-evidence"></div>
+      </div>
+      <div class="notes-section">
+        <div class="notes-title">
+          <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5 L4 7 L8 3" stroke="#4cc9a8" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+          Clues Found
+        </div>
+        <div id="clues"><div class="no-clues">None yet…</div></div>
+      </div>
+    </div>
+
+    <div class="interrogation" id="interrogation">
+      <div class="interro-placeholder" id="i-placeholder">Select a suspect<br>to begin interrogation.</div>
+      <div class="interro-main" id="i-main" style="display:none">
+        <div class="i-header">
+          <div class="i-avatar" id="i-avatar"></div>
+          <div>
+            <div class="i-name" id="i-name"></div>
+            <div class="i-role" id="i-role"></div>
+            <div class="i-desc" id="i-desc"></div>
+          </div>
+        </div>
+        <div class="q-label">Ask a question</div>
+        <div id="q-buttons"></div>
+        <div class="answers" id="answers"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ACCUSE -->
+<div id="accuse" class="screen">
+  <div class="accuse-box">
+    <div class="accuse-icon">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+        <circle cx="24" cy="24" r="22" stroke="#c94c4c" stroke-width="1.5" opacity=".4"/>
+        <circle cx="24" cy="24" r="16" stroke="#c94c4c" stroke-width="1" opacity=".25"/>
+        <circle cx="24" cy="24" r="4" fill="#c94c4c" opacity=".7"/>
+      </svg>
+    </div>
+    <h2>Your Accusation</h2>
+    <p class="accuse-sub">Who is responsible?<br>Choose carefully — you only get one chance.</p>
+    <div class="accuse-grid" id="accuse-grid"></div>
+    <div class="accuse-actions">
+      <button class="btn-ghost" onclick="cancelAccuse()">Back</button>
+      <button class="btn-primary" id="btn-confirm" onclick="confirmAccuse()" disabled>Accuse</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ RESULT -->
+<div id="result" class="screen">
+  <div class="result-box">
+    <div class="stamp-wrap"><div class="stamp" id="r-stamp"></div></div>
+    <div id="r-icon"></div>
+    <div class="verdict" id="r-verdict"></div>
+    <div class="result-sub" id="r-sub"></div>
+    <div class="result-panel">
+      <div class="result-panel-title">The Truth</div>
+      <div class="killer-reveal" id="r-killer"></div>
+      <div class="killer-story" id="r-story"></div>
+      <div class="the-tell"><div class="tell-label">The Tell</div><div id="r-tell"></div></div>
+    </div>
+    <div id="solver-form-wrap" class="solver-form-wrap" style="display:none">
+      <div class="solver-form-label">Enter your name for the Hall of Solvers</div>
+      <div class="solver-form">
+        <input class="solver-input" id="solver-name-input" type="text" placeholder="Your name" maxlength="30" onkeydown="if(event.key==='Enter')submitSolver()"/>
+        <button class="btn-primary" onclick="submitSolver()">Add</button>
+      </div>
+    </div>
+    <div id="solver-board-wrap" class="solver-board-panel" style="display:none">
+      <div class="solver-board-title">
+        <svg width="12" height="12" viewBox="0 0 12 12"><path d="M6 1L7.5 4.5H11L8.25 6.75L9.25 10.5L6 8.5L2.75 10.5L3.75 6.75L1 4.5Z" fill="#c9a84c" opacity=".8"/></svg>
+        Hall of Solvers
+      </div>
+      <div class="solver-list" id="solver-list"></div>
+    </div>
+    <button class="btn-primary" onclick="resetGame()">Play Again</button>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────── SVG SCENES
+
+function estateSVG() {
+  return `<svg viewBox="0 0 600 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="mg" cx="50%" cy="30%" r="60%"><stop offset="0%" stop-color="#8090c0" stop-opacity=".18"/><stop offset="100%" stop-color="#8090c0" stop-opacity="0"/></radialGradient>
+    <radialGradient id="cg" cx="50%" cy="40%" r="60%"><stop offset="0%" stop-color="#d08020" stop-opacity=".55"/><stop offset="100%" stop-color="#d08020" stop-opacity="0"/></radialGradient>
+    <radialGradient id="vg" cx="50%" cy="50%" r="70%"><stop offset="50%" stop-color="#09090f" stop-opacity="0"/><stop offset="100%" stop-color="#09090f" stop-opacity=".95"/></radialGradient>
+  </defs>
+  <rect width="600" height="300" fill="#09090f"/><rect width="600" height="220" fill="#0c0c18"/>
+  <rect x="15" y="55" width="145" height="170" fill="#100c08" rx="1"/><rect x="20" y="60" width="135" height="160" fill="#0c0905"/>
+  <rect x="22" y="63" width="11" height="42" fill="#1e0a30"/><rect x="34" y="65" width="9" height="40" fill="#2a1010"/><rect x="44" y="62" width="13" height="43" fill="#0a1e2a"/>
+  <rect x="58" y="64" width="10" height="41" fill="#1a2a0a"/><rect x="69" y="63" width="12" height="42" fill="#2a1a0a"/><rect x="82" y="66" width="8" height="39" fill="#1a0a1a"/>
+  <rect x="91" y="62" width="14" height="43" fill="#0a1a1a"/><rect x="106" y="65" width="9" height="40" fill="#2a0a0a"/><rect x="116" y="63" width="11" height="42" fill="#1a1a0a"/>
+  <rect x="20" y="108" width="135" height="2" fill="#180e06"/>
+  <rect x="22" y="112" width="10" height="36" fill="#2a0a1a"/><rect x="33" y="114" width="12" height="34" fill="#0a1a0a"/><rect x="46" y="111" width="8" height="37" fill="#1a1a2a"/>
+  <rect x="55" y="113" width="13" height="35" fill="#2a1a1a"/><rect x="69" y="112" width="9" height="36" fill="#0a0a2a"/><rect x="79" y="114" width="11" height="34" fill="#1a2a1a"/>
+  <rect x="210" y="8" width="180" height="205" fill="#0f102a" rx="3"/><rect x="216" y="14" width="168" height="193" fill="#12143a" rx="2"/>
+  <circle cx="300" cy="75" r="90" fill="url(#mg)"/>
+  <g opacity=".25" stroke="#3040a0" stroke-width="1"><line x1="232" y1="18" x2="225" y2="100"/><line x1="252" y1="16" x2="245" y2="102"/><line x1="272" y1="18" x2="265" y2="106"/><line x1="292" y1="14" x2="286" y2="98"/><line x1="312" y1="17" x2="306" y2="103"/><line x1="332" y1="19" x2="326" y2="107"/><line x1="352" y1="15" x2="346" y2="99"/></g>
+  <line x1="300" y1="14" x2="300" y2="207" stroke="#09090f" stroke-width="6"/>
+  <line x1="216" y1="112" x2="384" y2="112" stroke="#09090f" stroke-width="6"/>
+  <rect x="210" y="8" width="180" height="205" fill="none" stroke="#181830" stroke-width="8" rx="3"/>
+  <rect x="460" y="28" width="100" height="130" fill="#140f06" rx="2" stroke="#2a1a08" stroke-width="2"/>
+  <rect x="468" y="36" width="84" height="114" fill="#0f0b04"/><ellipse cx="510" cy="72" rx="22" ry="26" fill="#1a1208"/><rect x="488" y="96" width="44" height="46" fill="#1a1208" rx="3"/>
+  <rect x="0" y="220" width="600" height="80" fill="#0d0a07"/>
+  <rect x="70" y="190" width="450" height="24" fill="#1e1108" rx="2"/><rect x="85" y="214" width="420" height="65" fill="#170e06"/>
+  <ellipse cx="265" cy="186" rx="68" ry="23" fill="#0d0b15"/><ellipse cx="210" cy="181" rx="30" ry="24" fill="#0d0b15"/>
+  <path d="M240 188 Q285 193 330 188" stroke="#0d0b15" stroke-width="15" fill="none" stroke-linecap="round"/>
+  <path d="M375 188 L367 208 L385 208 Z" fill="#7a6035" opacity=".85"/><rect x="367" y="208" width="18" height="4" fill="#7a6035" opacity=".85"/>
+  <path d="M369 201 L367 208 L385 208 L383 201 Z" fill="#c9701c" opacity=".65"/>
+  <ellipse cx="450" cy="193" rx="13" ry="4" fill="#3a2a10"/>
+  <rect x="444" y="162" width="12" height="31" fill="#ede0b0" rx="1"/>
+  <path d="M450 162 Q451 157 450 154" stroke="#666" stroke-width="1.5" fill="none"/>
+  <ellipse cx="450" cy="149" rx="6" ry="10" fill="#c9801c" class="flame-outer" opacity=".85"/>
+  <ellipse cx="450" cy="151" rx="3.5" ry="7" fill="#f0d060" class="flame-mid"/>
+  <ellipse cx="450" cy="153" rx="2" ry="4.5" fill="#fff8e0" class="flame-inner"/>
+  <circle cx="450" cy="175" r="95" fill="url(#cg)" class="glow-pulse"/>
+  <rect width="600" height="300" fill="url(#vg)"/>
+</svg>`;
+}
+
+function trainSVG() {
+  return `<svg viewBox="0 0 600 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="tg" cx="50%" cy="50%" r="70%"><stop offset="50%" stop-color="#09090f" stop-opacity="0"/><stop offset="100%" stop-color="#09090f" stop-opacity=".95"/></radialGradient>
+    <radialGradient id="wg" cx="50%" cy="30%" r="60%"><stop offset="0%" stop-color="#6080c0" stop-opacity=".3"/><stop offset="100%" stop-color="#6080c0" stop-opacity="0"/></radialGradient>
+    <radialGradient id="lg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#d0a030" stop-opacity=".5"/><stop offset="100%" stop-color="#d0a030" stop-opacity="0"/></radialGradient>
+  </defs>
+  <!-- Dark compartment -->
+  <rect width="600" height="300" fill="#080c14"/>
+  <!-- Back wall wood panels -->
+  <rect width="600" height="300" fill="#0c0e18"/>
+  <rect x="0" y="0" width="2" height="300" fill="#1a1820" opacity=".5"/>
+  <rect x="199" y="0" width="2" height="300" fill="#0a0c14"/>
+  <rect x="399" y="0" width="2" height="300" fill="#0a0c14"/>
+  <!-- Large window -->
+  <rect x="160" y="15" width="280" height="200" rx="8" fill="#0a0e28"/>
+  <rect x="166" y="21" width="268" height="188" rx="5" fill="#0d1230"/>
+  <!-- Night landscape speed blur -->
+  <circle cx="300" cy="115" r="100" fill="url(#wg)"/>
+  <g stroke="#4060a0" stroke-width="1" opacity=".15">
+    <line x1="170" y1="80"  x2="430" y2="75"/><line x1="170" y1="95"  x2="430" y2="90"/>
+    <line x1="170" y1="110" x2="430" y2="105"/><line x1="170" y1="125" x2="430" y2="120"/>
+    <line x1="170" y1="140" x2="430" y2="135"/><line x1="170" y1="155" x2="430" y2="150"/>
+    <line x1="170" y1="170" x2="430" y2="165"/>
+  </g>
+  <!-- Distant lights streaking past -->
+  <g stroke="#c0d0ff" stroke-width="1.5" opacity=".12">
+    <line x1="180" y1="88" x2="240" y2="87"/><line x1="300" y1="102" x2="380" y2="100"/>
+    <line x1="190" y1="130" x2="270" y2="129"/><line x1="350" y1="118" x2="420" y2="117"/>
+    <line x1="200" y1="155" x2="250" y2="154"/>
+  </g>
+  <!-- Window frame -->
+  <rect x="160" y="15" width="280" height="200" rx="8" fill="none" stroke="#1a2030" stroke-width="10"/>
+  <line x1="300" y1="21" x2="300" y2="203" stroke="#080c14" stroke-width="5"/>
+  <line x1="166" y1="112" x2="434" y2="112" stroke="#080c14" stroke-width="5"/>
+  <!-- Overhead luggage rack -->
+  <rect x="20" y="18" width="120" height="8" fill="#1a1418" rx="2"/>
+  <rect x="460" y="18" width="120" height="8" fill="#1a1418" rx="2"/>
+  <rect x="25" y="26" width="110" height="40" fill="#120e10" rx="1"/>
+  <rect x="465" y="26" width="110" height="40" fill="#120e10" rx="1"/>
+  <!-- Luggage silhouettes -->
+  <rect x="30" y="30" width="45" height="32" fill="#1e1620" rx="1"/><rect x="78" y="33" width="52" height="29" fill="#16141c" rx="1"/>
+  <rect x="470" y="30" width="50" height="32" fill="#1e1820" rx="1"/><rect x="524" y="35" width="46" height="27" fill="#181620" rx="1"/>
+  <!-- Bench seat (left) -->
+  <rect x="20" y="200" width="120" height="20" fill="#1e1614" rx="2"/>
+  <rect x="20" y="130" width="18" height="90" fill="#1a1210" rx="2"/>
+  <rect x="122" y="130" width="18" height="90" fill="#1a1210" rx="2"/>
+  <!-- Bench seat (right) -->
+  <rect x="460" y="200" width="120" height="20" fill="#1e1614" rx="2"/>
+  <rect x="460" y="130" width="18" height="90" fill="#1a1210" rx="2"/>
+  <rect x="562" y="130" width="18" height="90" fill="#1a1210" rx="2"/>
+  <!-- Floor -->
+  <rect x="0" y="220" width="600" height="80" fill="#0a0808"/>
+  <line x1="0" y1="235" x2="600" y2="235" stroke="#0e0c0a" stroke-width="1"/>
+  <!-- Small fold table -->
+  <rect x="258" y="196" width="84" height="5" fill="#2a1e10" rx="1"/>
+  <rect x="295" y="201" width="10" height="20" fill="#221a0e" rx="1"/>
+  <!-- Glass and delight box on table -->
+  <path d="M278 196 L272 210 L288 210 Z" fill="#5a4020" opacity=".7"/>
+  <rect x="272" y="210" width="16" height="3" fill="#5a4020" opacity=".7"/>
+  <rect x="302" y="188" width="22" height="12" fill="#3a2018" rx="1"/>
+  <!-- Slumped figure on right bench -->
+  <ellipse cx="510" cy="197" rx="40" ry="18" fill="#0c0a14"/>
+  <ellipse cx="480" cy="188" rx="22" ry="20" fill="#0c0a14"/>
+  <path d="M500 198 Q525 202 550 198" stroke="#0c0a14" stroke-width="12" fill="none" stroke-linecap="round"/>
+  <!-- Cravat on floor -->
+  <path d="M440 218 Q455 210 465 220 Q472 228 462 232 Q450 235 442 226 Z" fill="#3a0a0a" opacity=".8"/>
+  <!-- Lamp glow -->
+  <circle cx="70" cy="14" r="50" fill="url(#lg)"/>
+  <rect x="60" y="8" width="20" height="10" fill="#c0a050" opacity=".6" rx="2"/>
+  <ellipse cx="70" cy="14" rx="10" ry="6" fill="#e0c070" opacity=".5"/>
+  <rect width="600" height="300" fill="url(#tg)"/>
+</svg>`;
+}
+
+function planeSVG() {
+  return `<svg viewBox="0 0 600 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="pg" cx="50%" cy="50%" r="70%"><stop offset="50%" stop-color="#09090f" stop-opacity="0"/><stop offset="100%" stop-color="#09090f" stop-opacity=".95"/></radialGradient>
+    <radialGradient id="sg" cx="50%" cy="50%" r="60%"><stop offset="0%" stop-color="#1030a0" stop-opacity=".2"/><stop offset="100%" stop-color="#1030a0" stop-opacity="0"/></radialGradient>
+    <radialGradient id="eg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#d08020" stop-opacity=".35"/><stop offset="100%" stop-color="#d08020" stop-opacity="0"/></radialGradient>
+  </defs>
+  <!-- Cabin interior -->
+  <rect width="600" height="300" fill="#09090f"/>
+  <rect width="600" height="300" fill="#0c0c16"/>
+  <!-- Overhead bins -->
+  <rect x="0" y="0" width="600" height="45" fill="#141420"/>
+  <rect x="10" y="5" width="180" height="35" fill="#0e0e1c" rx="2"/>
+  <rect x="205" y="5" width="180" height="35" fill="#0e0e1c" rx="2"/>
+  <rect x="400" y="5" width="185" height="35" fill="#0e0e1c" rx="2"/>
+  <!-- Overhead lighting strip -->
+  <rect x="0" y="42" width="600" height="3" fill="#1a1a30" opacity=".8"/>
+  <line x1="50" y1="44" x2="550" y2="44" stroke="#4040a0" stroke-width="1" opacity=".3"/>
+  <!-- Aisle -->
+  <rect x="260" y="44" width="80" height="256" fill="#0a0a14"/>
+  <!-- Windows - left side -->
+  <rect x="30" y="80" width="70" height="90" rx="35" fill="#0a0e28"/>
+  <rect x="36" y="86" width="58" height="78" rx="29" fill="#0d1232"/>
+  <circle cx="65" cy="130" r="45" fill="url(#sg)"/>
+  <!-- Stars in left window -->
+  <g fill="#d0e0ff" opacity=".5"><circle cx="42" cy="95" r=".8"/><circle cx="60" cy="88" r=".6"/><circle cx="78" cy="100" r=".8"/><circle cx="50" cy="115" r=".5"/><circle cx="85" cy="108" r=".7"/><circle cx="55" cy="145" r=".6"/><circle cx="70" cy="155" r=".5"/><circle cx="45" cy="138" r=".7"/></g>
+  <!-- Clouds in left window -->
+  <ellipse cx="48" cy="160" rx="20" ry="6" fill="#1a2040" opacity=".6"/>
+  <ellipse cx="75" cy="155" rx="16" ry="5" fill="#1a2040" opacity=".5"/>
+  <!-- Windows - right side -->
+  <rect x="500" y="80" width="70" height="90" rx="35" fill="#0a0e28"/>
+  <rect x="506" y="86" width="58" height="78" rx="29" fill="#0d1232"/>
+  <circle cx="535" cy="130" r="45" fill="url(#sg)"/>
+  <g fill="#d0e0ff" opacity=".5"><circle cx="512" cy="95" r=".8"/><circle cx="530" cy="88" r=".6"/><circle cx="548" cy="100" r=".8"/><circle cx="520" cy="115" r=".5"/><circle cx="555" cy="108" r=".7"/><circle cx="525" cy="145" r=".6"/><circle cx="540" cy="155" r=".5"/></g>
+  <ellipse cx="518" cy="160" rx="20" ry="6" fill="#1a2040" opacity=".6"/>
+  <!-- Business class seat (left) - reclined -->
+  <rect x="30" y="195" width="210" height="18" fill="#181422" rx="2"/>
+  <rect x="30" y="180" width="25" height="35" fill="#141020" rx="2"/>
+  <path d="M55 185 Q140 175 240 180" stroke="#141020" stroke-width="22" fill="none" stroke-linecap="round"/>
+  <!-- Tray table with tipped champagne -->
+  <rect x="155" y="173" width="60" height="5" fill="#1e1a28" rx="1"/>
+  <rect x="178" y="178" width="8" height="14" fill="#1a1624" rx="1"/>
+  <!-- Champagne flute tipped over -->
+  <path d="M168 173 L162 155 L176 155 Z" fill="#4a3a60" opacity=".7" transform="rotate(40 168 173)"/>
+  <ellipse cx="161" cy="174" rx="8" ry="3" fill="#6a5480" opacity=".5"/>
+  <!-- Champagne spill -->
+  <ellipse cx="155" cy="176" rx="18" ry="4" fill="#3a2a50" opacity=".4"/>
+  <!-- Slumped figure -->
+  <ellipse cx="130" cy="182" rx="55" ry="16" fill="#0d0b18"/>
+  <ellipse cx="90" cy="174" rx="24" ry="20" fill="#0d0b18"/>
+  <!-- Laptop/phone on right seat area -->
+  <rect x="380" y="185" width="50" height="32" fill="#0a1420" rx="2"/>
+  <rect x="384" y="189" width="42" height="24" fill="#0e2030" rx="1"/>
+  <rect x="390" y="195" width="30" height="12" fill="#102840" rx="1" opacity=".8"/>
+  <!-- USB drive -->
+  <rect x="420" y="225" width="20" height="8" fill="#2a1a0a" rx="1"/>
+  <rect x="438" y="227" width="6" height="4" fill="#c0a050" rx=".5" opacity=".7"/>
+  <!-- Emergency glow (call button) -->
+  <circle cx="250" cy="55" r="8" fill="#c94c4c" opacity=".15"/>
+  <circle cx="350" cy="55" r="8" fill="#c94c4c" opacity=".1"/>
+  <!-- Ambient emergency glow at top -->
+  <rect x="240" y="44" width="120" height="15" fill="#c94c4c" opacity=".04"/>
+  <rect width="600" height="300" fill="url(#pg)"/>
+</svg>`;
+}
+
+// ─────────────────────────────────────────────────────────── SCENARIOS
+
+const SCENARIOS = [
+{
+  id: 'estate',
+  title: "The Blackwell Affair",
+  subtitle: "A Murder in One Evening",
+  setting: "Blackwell Manor, Devonshire — Autumn, 1932",
+  intro: "<strong>Lord Edmund Blackwell</strong> — industrialist, collector, and thoroughly unpleasant man — has been found dead in his study. Arsenic, between nine and eleven o'clock.<br><br>Six people were present at the estate. You have <strong>12 questions</strong> — use them wisely.",
+  victimName: "Lord Blackwell",
+  svg: estateSVG,
+  facts: [
+    "Lord Blackwell was poisoned with arsenic. Time of death: between 9 and 11 PM.",
+    "A half-drunk glass of 30-year Glenlivet scotch was found on his desk.",
+    "The wall safe — hidden behind a portrait — was open and emptied of cash and documents.",
+    "Voices were heard from the study as late as 10:15 PM.",
+    "Arsenic symptoms (nausea, pallor, weakness) would have been visible from 7 PM onward.",
+    "The housekeeper recognised a second male voice in the study around 10 PM."
+  ],
+  evidence: [
+    { after:3, label:"Lab Report — Filed 11:40 PM", text:"The arsenic was dissolved directly in whisky — not in food. Whoever administered it knew exactly what Lord Blackwell would be drinking." },
+    { after:7, label:"Constable's Note — Wastebasket", text:"A receipt for arsenic-based rat poison purchased at Dowell's Chemist three weeks ago. The buyer signed with a first initial only." },
+    { after:12, label:"Telephone Exchange — 10:05 PM", text:"One outbound call placed from the estate at 10:05 PM, lasting four minutes. The recipient has not been identified." }
+  ],
+  suspects: [
+    { id:0, name:"Edmund Hale", role:"The Butler", color:"#2d4a3e", initial:"E", desc:"23 years in service.",
+      qs:[
+        { q:"You've served here 23 years — where were you last night?",                     a:"Clearing dinner until 9:15, then washing up. In my quarters by 10:30.", guiltyA:"I brought Lord Blackwell his chamomile tea at 9 and left him to it. He had given up spirits entirely — doctor's orders after his cardiac episode.", isGuilty:true },
+        { q:"What was Lord Blackwell's mood in recent weeks?",                               a:"Dark. He'd received a legal document he wouldn't discuss. He burned something in the fireplace last Tuesday.", isGuilty:false },
+        { q:"You prepared the evening tray — what was on it?",                               a:"His usual scotch decanter, water, and a tumbler. I set it at 8:30 as always.", isGuilty:false },
+        { q:"Did Lord Blackwell have enemies among the household?",                          a:"Not enemies. But Mrs. Blackwell and the son — Dorian — both had grievances. And Mr. Webb left angry last week.", isGuilty:false }
+      ],
+      clue:"Edmund claims Lord Blackwell had given up drinking spirits — but a half-drunk glass of 30-year scotch was found on his desk.",
+      story:"Edmund had served Lord Blackwell faithfully for 23 years — but Blackwell had rewritten his will, cutting Edmund out entirely. Edmund poisoned the scotch Blackwell kept hidden from his wife. His story about 'chamomile tea' and a man who 'gave up spirits' contradicted the glass on the desk."
+    },
+    { id:1, name:"Victoria Blackwell", role:"The Wife", color:"#4a2d3e", initial:"V", desc:"Married Lord Blackwell seven years ago.",
+      qs:[
+        { q:"When did you last speak with your husband last night?",                         a:"At dinner, around 8. He was cold and distracted. I retired to my room at 9:30.", isGuilty:false },
+        { q:"Your bedroom is directly above the study — did you hear anything?",             a:"Not a sound all night. After 9 PM the house was completely silent as far as I could tell.", guiltyA:"Not a sound all night. After 9 PM the house was completely silent as far as I could tell.", isGuilty:true },
+        { q:"We understand Lord Blackwell had frozen your accounts — is that true?",         a:"He did. Two weeks ago. Something to do with a solicitor I'd spoken with. He was punishing me.", isGuilty:false },
+        { q:"Is there anyone you believe had reason to harm your husband?",                   a:"Reginald Foss was here earlier and left in a fury. Dorian has hated his father for years. Marcus Webb too — they were suing each other.", isGuilty:false }
+      ],
+      clue:"Victoria claims the house was completely silent after 9 PM — yet voices were heard from the study as late as 10:15 PM. Her bedroom is directly above it.",
+      story:"Victoria had been secretly planning to leave, meeting a solicitor twice a month. Blackwell discovered this and froze every account in her name. She poisoned his evening scotch, then claimed to hear nothing — forgetting that sound travels through old floors."
+    },
+    { id:2, name:"Marcus Webb", role:"The Business Partner", color:"#2d3a4a", initial:"M", desc:"Partners for 12 years, now in dispute.",
+      qs:[
+        { q:"You were in a legal dispute with Lord Blackwell — can you explain?",            a:"He wanted to dissolve our company and take the assets. I was fighting it in court. It was becoming ugly.", isGuilty:false },
+        { q:"What time did you leave the estate last night?",                                a:"Right after dinner — 8:30 at the latest. My driver will confirm.", isGuilty:false },
+        { q:"How would you describe Blackwell's health when you last saw him?",              a:"Perfectly healthy. Good colour, sharp mind. Fit as a fiddle, actually.", guiltyA:"Perfectly healthy. Good colour, sharp mind. Fit as a fiddle, actually.", isGuilty:true },
+        { q:"Were you aware that documents were removed from his safe?",                     a:"I wasn't aware there was a safe. Though I'm not surprised — he kept everything hidden.", isGuilty:false }
+      ],
+      clue:"Marcus claims Lord Blackwell appeared 'perfectly healthy' — but arsenic symptoms would have been clearly visible from 7 PM onward.",
+      story:"Marcus had been embezzling from their company for three years. Blackwell found proof — the missing documents were termination papers and fraud evidence. Marcus returned, emptied the safe, and poisoned the scotch. His claim Blackwell 'looked perfectly healthy' gave him away."
+    },
+    { id:3, name:"Dorian Blackwell", role:"The Son", color:"#3a2d4a", initial:"D", desc:"Estranged for two years over the will.",
+      qs:[
+        { q:"When did you leave the estate — and can anyone confirm that?",                 a:"I left for London at 5:30, maybe 6. I was nowhere near the estate after that. Completely impossible.", guiltyA:"I left for London at 5:30, maybe 6. I was nowhere near the estate after that. Completely impossible.", isGuilty:true },
+        { q:"Your father was cutting you from his will — how did you feel?",                a:"Furious. Two years of silence and then that. I'm the obvious suspect, which is exactly why it wasn't me.", isGuilty:false },
+        { q:"Can you describe your last conversation with him?",                             a:"Two weeks ago by telephone. He told me I'd get nothing. I told him he'd regret it. Not my finest hour.", isGuilty:false },
+        { q:"Is there anyone in this house you believe is responsible?",                    a:"Victoria. She's been meeting privately with a solicitor for months. She knew exactly what she stood to gain.", isGuilty:false }
+      ],
+      clue:"Dorian insists he left by 6 PM and never returned — but the housekeeper recognised a second male voice in the study around 10 PM.",
+      story:"Dorian drove up from London that afternoon — not to reconcile, but to make one final demand about the will. The confrontation turned violent. He brought arsenic on a desperate impulse and used it. He told you he was in London by 9 PM. The housekeeper recognised his voice at 10."
+    },
+    { id:4, name:"Dr. Helena Cross", role:"The Physician", color:"#4a3e2d", initial:"H", desc:"Lord Blackwell's personal doctor for six years.",
+      qs:[
+        { q:"You were here for an 8 PM appointment — how was Lord Blackwell when you examined him?", a:"Alert and cheerful — excellent spirits. No concerns whatsoever from the examination.", guiltyA:"Alert and cheerful — excellent spirits. No concerns whatsoever from the examination.", isGuilty:true },
+        { q:"What medications was Lord Blackwell currently taking?",                         a:"I can't share patient information. I will say his regime was carefully managed — any deviation would be dangerous.", isGuilty:false },
+        { q:"As a physician, what would arsenic poisoning look like at 8 PM?",              a:"Pronounced nausea, pallor, weakness, sweating. It would be unmistakable to any trained eye.", isGuilty:false },
+        { q:"Did anything about Lord Blackwell concern you in recent weeks?",               a:"His stress levels were alarming. And he'd recently discovered something that clearly disturbed him. He wouldn't tell me what.", isGuilty:false }
+      ],
+      clue:"Dr. Cross claims Lord Blackwell was 'alert and cheerful' at 8 PM — yet arsenic symptoms would have been clearly visible from 7 PM onward. As his physician, she would have recognised them immediately.",
+      story:"Dr. Cross had been falsifying Lord Blackwell's medical records, covering a misdiagnosis that had cost another patient their life. Blackwell found out and threatened to report her. She administered the arsenic during the 8 PM checkup. She saw the symptoms. She caused them."
+    },
+    { id:5, name:"Reginald Foss", role:"The Rival Collector", color:"#3e4a2d", initial:"R", desc:"Thirty-year rival of Lord Blackwell.",
+      qs:[
+        { q:"You had a row with Lord Blackwell earlier — what was it about?",               a:"A Ming vase he purchased using documents I believe were forged. Thirty years of disputes, and this was the final one.", isGuilty:false },
+        { q:"What was Lord Blackwell's demeanor when you left at 8:30?",                   a:"Furious, but alive. We parted with mutual contempt. That was the last I saw of him.", isGuilty:false },
+        { q:"How well did you know the interior of this estate?",                           a:"Barely at all. I've only ever been in the drawing room — a handful of times over the years.", guiltyA:"Barely at all. I've only ever been in the drawing room — a handful of times over the years.", isGuilty:true },
+        { q:"Tell me about the disputed Ming vase documents.",                              a:"Blackwell purchased it using records I believe were fabricated. Those documents were in his safe. I needed them back.", isGuilty:false }
+      ],
+      clue:"Reginald claims he barely knew the estate's interior — yet the wall safe was hidden behind a portrait in the private study. Only someone familiar with the study would know it existed.",
+      story:"Reginald's feud with Blackwell had lasted thirty years, culminating over a disputed Ming vase and forged purchase records stored in the safe. He returned after his dramatic exit, broke into the study, retrieved the documents, and poisoned the scotch. He claimed to barely know the house. But he knew exactly where to look."
+    }
+  ]
+},
+
+// ─────────────────────────────────────────── THE NIGHT EXPRESS
+{
+  id: 'train',
+  title: "The Night Express",
+  subtitle: "A Murder on the Rails",
+  setting: "The Golden Arrow — Paris to Constantinople, 1934",
+  intro: "<strong>Sir Aldous Fenwick</strong> — retired British ambassador, keeper of secrets — has been found strangled in his sleeping compartment. A silk cravat. Between midnight and 2 AM.<br><br>Six passengers remain. You have <strong>12 questions</strong> before the train reaches the border.",
+  victimName: "Sir Aldous",
+  svg: trainSVG,
+  facts: [
+    "Sir Aldous Fenwick was strangled in Compartment 4 between midnight and 2 AM.",
+    "The murder weapon — a silk cravat — is monogrammed with initials other than the victim's.",
+    "Classified diplomatic documents are missing from his leather attaché case.",
+    "Turkish delight on his table was laced with a sedative — he was drugged before being killed.",
+    "Compartment 5 (directly adjacent) shows signs of a hurried, unplanned departure.",
+    "The dining car was locked by the steward at midnight — he alone held the key all night."
+  ],
+  evidence: [
+    { after:3, label:"Steward's Statement — 12:08 AM", text:"'I locked the dining car at midnight myself. The key was in my breast pocket from that moment until 6 AM. I am absolutely certain.'" },
+    { after:7, label:"Medical Examiner's Note", text:"The sedative was dosed with considerable precision — calculated for a man of Sir Aldous's exact body weight. This was not guesswork." },
+    { after:12, label:"Telegram — Budapest Station, 1:17 AM", text:"Addressed to Compartment 4: 'Documents received. Account cleared. Do not contact again.' Sent while the train was between Vienna and Budapest." }
+  ],
+  suspects: [
+    { id:0, name:"Claude Renard", role:"The French Diplomat", color:"#2d4a3e", initial:"C", desc:"A senior attaché returning from summit talks.",
+      qs:[
+        { q:"Where were you on the train between midnight and 2 AM?",                       a:"In my compartment from 11 PM. I was reading diplomatic cables until past 1 AM — alone, unfortunately.", guiltyA:"In the dining car until nearly 3 AM — a card game that ran long. Mr. Mancini and Miss Fox were both there.", isGuilty:true },
+        { q:"What diplomatic interests did you share with Sir Aldous?",                     a:"We overlapped on three Balkan summits. Cordial professionally. Not friends. He was not a man who had friends.", isGuilty:false },
+        { q:"Did Sir Aldous seem distracted or concerned at dinner?",                       a:"He kept glancing toward the corridor, as if expecting someone. He also seemed to be watching Mancini.", isGuilty:false },
+        { q:"Do you recognise the monogram on the cravat found at the scene?",              a:"I cannot see it clearly from here. Though I notice Madame Voss looked away quickly when the detective held it up.", isGuilty:false }
+      ],
+      clue:"Claude claims the dining car was open until 3 AM — but the steward locked it at midnight and held the only key all night.",
+      story:"Claude was carrying documents that Sir Aldous had been tasked to intercept on behalf of a third government. When he realised Sir Aldous knew, he acted first. He claimed to be playing cards in the dining car until 3 AM — a room that had been locked since midnight."
+    },
+    { id:1, name:"Miriam Voss", role:"The German Widow", color:"#4a2d3e", initial:"M", desc:"Widow of a Hamburg industrialist. Well-connected.",
+      qs:[
+        { q:"You were seen arguing with Sir Aldous on the Paris platform — what was that about?", a:"An old grievance. My late husband did business with Sir Aldous twenty years ago and was badly treated. I told him I had not forgotten.", isGuilty:false },
+        { q:"When did you retire to your compartment last night?",                           a:"By 10:30. I take a pill — I sleep very deeply. I heard nothing from midnight onward.", isGuilty:false },
+        { q:"How long had you known Sir Aldous personally?",                                a:"Personally? Not well. Twenty years of professional proximity. A cold man. Capable of anything.", isGuilty:false },
+        { q:"The cravat found at the scene — does it mean anything to you?",               a:"The cravat? That was his own — I noticed it at dinner. A dark burgundy silk. Very distinctive. He always wore it.", guiltyA:"The cravat? That was his own — I noticed it at dinner. A dark burgundy silk. Very distinctive. He always wore it.", isGuilty:true }
+      ],
+      clue:"Miriam identifies the cravat as Sir Aldous's own — but the monogram on it reads 'M.V.' His initials were 'A.F.'",
+      story:"Miriam Voss had nursed a twenty-year grievance — her husband had been destroyed by a deal Sir Aldous had arranged. She followed him aboard, waited until the sedative took effect, and used her own cravat. She told you it was his. The initials 'M.V.' were embroidered in the silk."
+    },
+    { id:2, name:"Hazel Fox", role:"The Investigative Journalist", color:"#2d3a4a", initial:"H", desc:"Writes for the London Tribune. Relentless.",
+      qs:[
+        { q:"You've investigated Sir Aldous before — what did you uncover?",                a:"Enough to know he was running two sets of loyalties. I was on this train to confront him. Now I can't.", isGuilty:false },
+        { q:"Where were you physically on the train last night?",                            a:"In my compartment, writing. I filed a piece at 1:15 AM — transmission logs can confirm.", isGuilty:false },
+        { q:"Which compartment are you in, and who is adjacent to you?",                   a:"My compartment is at the far end of the carriage — Compartment 9, I believe. Quite removed from the others.", guiltyA:"My compartment is at the far end of the carriage — Compartment 9, I believe. Quite removed from the others.", isGuilty:true },
+        { q:"What story were you planning to write about Sir Aldous?",                     a:"His role in a 1919 treaty that disappeared from the record. He was the only surviving signatory. Now there are none.", isGuilty:false }
+      ],
+      clue:"Hazel claims to be at the far end of the car — but train records show she was assigned Compartment 3, directly adjacent to Sir Aldous's Compartment 4.",
+      story:"Hazel had the story of her career within reach — but Sir Aldous had agreed to talk and then changed his mind, threatening legal action instead. She silenced him in the adjacent compartment, then lied about where she was sleeping. The manifest put her door next to his."
+    },
+    { id:3, name:"Dr. Stefan Kral", role:"The Czech Physician", color:"#3a2d4a", initial:"S", desc:"A private medical consultant. Quiet, observant.",
+      qs:[
+        { q:"You were seen in the corridor at 12:30 — explain.",                            a:"Insomnia. I walked the corridor once, briefly, then returned to Compartment 5 and stayed there.", isGuilty:false },
+        { q:"The Turkish delight was laced with a sedative — could you have identified it on sight?", a:"Identifying a sedative in food? Impossible without laboratory analysis — it would be invisible and undetectable by smell.", guiltyA:"Identifying a sedative in food? Impossible without laboratory analysis — it would be invisible and undetectable by smell.", isGuilty:true },
+        { q:"What brought you onto this particular train at this time?",                    a:"A patient in Constantinople. A private matter. I am not connected to Sir Aldous in any professional capacity.", isGuilty:false },
+        { q:"As a physician, what's your assessment of how the sedative was dosed?",       a:"Whoever did it was guessing, I would think. A rough calculation. Amateur work.", isGuilty:false }
+      ],
+      clue:"Dr. Kral claims the sedative would be 'impossible to detect' — yet it was dosed precisely for Sir Aldous's exact body weight. Only someone with access to his medical records could have calculated that. Dr. Kral had treated Sir Aldous privately for two years.",
+      story:"Dr. Kral had been blackmailed by Sir Aldous for two years — threatened with exposure of a past malpractice case. He calculated the sedative dose from Sir Aldous's medical records, added it to the Turkish delight during a brief compartment visit, then denied all knowledge of how such precision was possible."
+    },
+    { id:4, name:"Lorenzo Mancini", role:"The Italian Industrialist", color:"#4a3e2d", initial:"L", desc:"Head of a Milan trading empire.",
+      qs:[
+        { q:"How long have you been acquainted with Sir Aldous Fenwick?",                  a:"This is our first meeting — a chance encounter on this particular train. I knew him by reputation only.", guiltyA:"This is our first meeting — a chance encounter on this particular train. I knew him by reputation only.", isGuilty:true },
+        { q:"The missing documents relate to a trade negotiation — are you involved?",      a:"I have many trade negotiations active. I would need to see the specific documents you're referring to.", isGuilty:false },
+        { q:"What time did the card game in the dining car end?",                           a:"Around midnight, when the steward began clearing. I went directly to my compartment after.", isGuilty:false },
+        { q:"Did anyone leave the dining car during the card game?",                        a:"Renard stepped out briefly around 11. Miss Fox as well, I think. The widow was not there at all.", isGuilty:false }
+      ],
+      clue:"Lorenzo claims they had never met — yet the missing documents concern a £40 million trade negotiation where Lorenzo's firm is the named counterparty. He knew Sir Aldous's position — and his leverage — intimately.",
+      story:"Lorenzo stood to lose his entire empire if the trade deal collapsed — and Sir Aldous had the power to collapse it. He claimed they had never met. The missing documents told a different story: his name appeared on every page."
+    },
+    { id:5, name:"Ada Thornton", role:"The Travel Companion", color:"#3e4a2d", initial:"A", desc:"Sir Aldous's personal aide for six years.",
+      qs:[
+        { q:"You were his closest confidante — who do you believe did this?",               a:"I've asked myself that all night. Dr. Kral knew things about him that no one else did. And Miriam Voss hated him openly.", isGuilty:false },
+        { q:"What was in the telegram Sir Aldous received at dinner?",                      a:"He wouldn't show me. But he went pale when he read it and didn't speak again for the rest of the meal.", isGuilty:false },
+        { q:"Did Sir Aldous change his will recently, to your knowledge?",                  a:"Not to my knowledge. I handle his correspondence but not his legal affairs. I would be the last to know.", guiltyA:"Not to my knowledge. I handle his correspondence but not his legal affairs. I would be the last to know.", isGuilty:true },
+        { q:"When did you last see him alive, and what was his state of mind?",            a:"Around 10:45, in his compartment. He was agitated. He said 'one of them is going to move tonight.' I didn't understand what he meant.", isGuilty:false }
+      ],
+      clue:"Ada claims ignorance of any will changes — but a codicil naming her sole heir was found in Sir Aldous's personal papers, signed two weeks ago and notarised by a solicitor whose details were saved in Ada's own address book.",
+      story:"Ada had spent six years as Sir Aldous's invisible aide — loyal, underpaid, and unacknowledged. When he added her to his will two weeks prior, she thought it was finally recognition. When she learned he intended to revoke it at journey's end, she acted on impulse. She laced the Turkish delight herself."
+    }
+  ]
+},
+
+// ─────────────────────────────────────────── FLIGHT 404
+{
+  id: 'plane',
+  title: "Flight 404",
+  subtitle: "A Murder at 30,000 Feet",
+  setting: "Private charter — New York to London, over the Atlantic",
+  intro: "<strong>Rex Vandermoor</strong> — tech billionaire, everyone's enemy — was found unresponsive at 11 PM somewhere over the Atlantic. Poison confirmed. No one can leave the aircraft.<br><br>Six passengers. You have <strong>12 questions</strong> to find who did it before you land.",
+  victimName: "Rex Vandermoor",
+  svg: planeSVG,
+  facts: [
+    "Rex Vandermoor was found unresponsive at 11 PM. A fast-acting toxin was confirmed in his bloodstream.",
+    "A champagne bottle in his private suite had its seal broken and carefully resealed.",
+    "The cabin surveillance was manually disabled from the galley between 9:30 and 10:15 PM.",
+    "Vandermoor's laptop was accessed mid-flight; files were copied to an external drive.",
+    "A boarding pass stub under a false name was found near the galley — no such person was on the manifest.",
+    "The co-pilot observed at least one passenger entering Vandermoor's suite at 9:45 PM."
+  ],
+  evidence: [
+    { after:3, label:"Co-Pilot's Log — 21:47", text:"'Observed a passenger moving toward the forward suite. Did not log it at the time — assumed routine. Wish I had.' Added during post-incident debrief." },
+    { after:7, label:"In-Flight WiFi Log — 22:02", text:"Encrypted files uploaded to an external server at 22:02. Upload lasted four minutes. Server IP traces to a shell company registered in the Cayman Islands." },
+    { after:12, label:"Toxicology Supplement — On Landing", text:"The compound is a synthetic toxin not commercially available. It appears in three known contexts: government intelligence services, clinical research, and one passenger's documented professional history." }
+  ],
+  suspects: [
+    { id:0, name:"Priya Shah", role:"The CFO", color:"#2d4a3e", initial:"P", desc:"Runs Vandermoor's finances. Knows where everything is.",
+      qs:[
+        { q:"You manage all of Vandermoor's finances — were there irregular movements recently?",    a:"There are always irregular movements when you work for Rex. But yes — recently, transfers I couldn't account for. He wouldn't explain.", isGuilty:false },
+        { q:"Where were you between 9:30 and 10:30 PM?",                                           a:"In my seat. Headphones on, spreadsheets open. I never moved.", guiltyA:"In my seat. Headphones on, spreadsheets open. I never moved.", isGuilty:true },
+        { q:"Files were copied from Vandermoor's laptop mid-flight — how is that possible?",       a:"It shouldn't be. His laptop is encrypted. Unless someone had the credentials — which very few people did.", isGuilty:false },
+        { q:"Rex had been dismissing senior staff. Were you next?",                                a:"He'd already told me. End of the quarter. That's why I needed this flight to go well. I was pitching for my job.", isGuilty:false }
+      ],
+      clue:"Priya claims she never left her seat — but the co-pilot observed at least one passenger entering Rex's private suite at 9:45 PM.",
+      story:"Priya had discovered that Rex was planning to hand her books to regulators — evidence of financial irregularities she had carried out on his orders. She tampered with the champagne, copied the incriminating files for leverage, and returned to her seat. She claimed never to have moved."
+    },
+    { id:1, name:"Carter Blake", role:"The Lawyer", color:"#4a2d3e", initial:"C", desc:"Rex's legal counsel for eight years.",
+      qs:[
+        { q:"You've represented Vandermoor for 8 years — any active legal disputes to declare?",   a:"Several. Rex lived in litigation. I can't disclose specifics — privilege — but he had enemies in every jurisdiction.", isGuilty:false },
+        { q:"Witnesses say you were moving around the cabin at 9:30 — where were you going?",     a:"Restless. I can't sit still on long flights. I walked the cabin twice. Several people saw me.", isGuilty:false },
+        { q:"Vandermoor's laptop contained a letter terminating your firm — were you aware?",      a:"That's completely false. Rex and I were on excellent terms. Nothing like that was in the works.", guiltyA:"That's completely false. Rex and I were on excellent terms. Nothing like that was in the works.", isGuilty:true },
+        { q:"As a lawyer, who do you think had means, motive, and opportunity here?",             a:"Marco Reyes. His job was to protect Rex. He failed. That's either incompetence or complicity.", isGuilty:false }
+      ],
+      clue:"Carter claims Rex was about to terminate nothing — but the files copied from the laptop include a draft letter ending Carter's firm immediately and pursuing a malpractice claim worth $40 million.",
+      story:"Carter had suppressed legal documents that could have saved a client from a fraudulent deal Rex had orchestrated. Rex discovered this and was building a case against him. Carter tampered with the champagne during one of his 'restless' walks, then denied that any dispute existed. The copied files proved otherwise."
+    },
+    { id:2, name:"Nina Wolfe", role:"The PR Director", color:"#2d3a4a", initial:"N", desc:"Manages Vandermoor's public image. Knows all the damage.",
+      qs:[
+        { q:"You organised this charter — who had access to the galley area?",                    a:"The crew, obviously. Passengers could enter the galley — there's no lock. But the security panel is a different matter.", isGuilty:false },
+        { q:"The surveillance was disabled from the galley. Only someone with the code could do that — do you know who has it?", a:"I do not retain access codes after a charter is booked. That's crew territory.", guiltyA:"I do not retain access codes after a charter is booked. That's crew territory.", isGuilty:true },
+        { q:"What was Vandermoor's public image concealing, professionally speaking?",            a:"Everything. My job for four years was to put a palatable face on decisions that were anything but.", isGuilty:false },
+        { q:"How long were you in the galley, and did you see anything unusual?",                 a:"Twenty minutes, perhaps. Making tea. I noticed the camera light was off — I assumed a malfunction.", isGuilty:false }
+      ],
+      clue:"Nina claims she didn't retain the galley access code — but she organised the charter, briefed the crew personally, and is the only passenger whose charter documentation includes the security protocols.",
+      story:"Nina had been building an exit — quietly copying damaging information about Rex's business practices for a journalist. Rex had found out and was planning to sue her into silence. She disabled the cameras using the code from her charter documentation, tampered with the champagne, and returned to make tea."
+    },
+    { id:3, name:"James Pemberton", role:"The Investor", color:"#3a2d4a", initial:"J", desc:"Rex's first major backer. Fifteen years in.",
+      qs:[
+        { q:"Rex had been diluting your stake from 40% to under 5% — how did you feel about that?", a:"Betrayed. I made Rex Vandermoor. Without my capital, there is no company. And he was engineering my removal.", isGuilty:false },
+        { q:"Financial records show you've been shorting Vandermoor's stock — can you explain?",   a:"That is absolutely not true. I have never shorted a company I'm invested in. That would be a fundamental betrayal of fiduciary duty.", guiltyA:"That is absolutely not true. I have never shorted a company I'm invested in. That would be a fundamental betrayal of fiduciary duty.", isGuilty:true },
+        { q:"Where were you between 9:30 and 10:30 PM?",                                          a:"In my seat. I had a bourbon, watched half a film, fell asleep. I'm 61 — I don't skulk around aircraft.", isGuilty:false },
+        { q:"You said Rex had 'that look' before he went to his suite — what did you mean?",     a:"He gets a particular smile when he's decided to destroy someone. He had it all evening. I'd seen it directed at me before.", isGuilty:false }
+      ],
+      clue:"Pemberton denies ever shorting the company's stock — but the files copied from Rex's laptop show a trail of coordinated short positions timed to announcements only Pemberton knew in advance.",
+      story:"Pemberton had been profiting from Rex's disasters for years — shorting the stock before bad news broke. Rex had finally uncovered the pattern. Pemberton poisoned the champagne using a compound he had obtained through a previous business contact in pharmaceutical supply. He denied all of it. The files told the truth."
+    },
+    { id:4, name:"Dr. Elaine Hu", role:"The Physician", color:"#4a3e2d", initial:"E", desc:"Vandermoor's personal physician for three years.",
+      qs:[
+        { q:"You're the only medical professional on this aircraft — could you identify a poison mid-flight?", a:"Without equipment, identifying a synthetic toxin is essentially impossible. Too many variables, no reference tools.", guiltyA:"Without equipment, identifying a synthetic toxin is essentially impossible. Too many variables, no reference tools.", isGuilty:true },
+        { q:"Vandermoor had a known allergy — what was it, and who knew?",                         a:"A specific protein compound. Anyone who had reviewed his medical file would know. I kept that file restricted.", isGuilty:false },
+        { q:"The toxin used required precise medical dosing — what does that tell you?",           a:"That it was either a professional or someone with very detailed knowledge of the target's physiology. Not an amateur.", isGuilty:false },
+        { q:"Where were you when the surveillance cameras went offline?",                          a:"Reading in my seat. I don't socialise on flights. I have no reason to be near the galley.", isGuilty:false }
+      ],
+      clue:"Dr. Hu claims identifying the toxin mid-flight would be 'essentially impossible' — but the compound was administered in a dose calibrated precisely to Rex's body weight and metabolic rate, information only his physician held.",
+      story:"Rex had decided to replace Dr. Hu with a cheaper contractor and had hinted that he might share certain conversations about his business practices — conversations protected by privilege. She used her access to his medical records to calculate the dose, tampered with the champagne, and then denied she could have identified the compound at all."
+    },
+    { id:5, name:"Marco Reyes", role:"The Head of Security", color:"#3e4a2d", initial:"M", desc:"Vandermoor's personal protection detail for four years.",
+      qs:[
+        { q:"Your job was to watch his suite door. Someone entered at 9:45 — why didn't you stop them?", a:"I stepped away briefly — two minutes maximum. I should not have. That failure is mine to carry.", isGuilty:false },
+        { q:"A boarding pass stub near the galley bears an alias connected to a prior federal case — explain.", a:"I have never used an alias. My identity is entirely above board. That stub has nothing to do with me.", guiltyA:"I have never used an alias. My identity is entirely above board. That stub has nothing to do with me.", isGuilty:true },
+        { q:"As head of security, how do you assess what happened here?",                          a:"An inside job. Someone with prior knowledge of Rex's routine, his suite layout, and the surveillance blind spots. That narrows the list.", isGuilty:false },
+        { q:"Who on this aircraft had the means to disable the surveillance system?",             a:"Anyone who knew the galley code. I verified the passenger list personally — but I did not verify identities against that code.", isGuilty:false }
+      ],
+      clue:"Marco denies ever using an alias — but the boarding pass stub bears a name traced to a federal investigation three years ago in which Marco was listed as a person of interest under that exact alias.",
+      story:"Marco had been feeding rival intelligence services information about Rex's travel plans for two years. Rex had finally put it together. Marco disabled the cameras from the galley using knowledge he had of the charter's security layout, tampered with the champagne, and returned to his post. The stub with his old alias fell from his pocket."
+    }
+  ]
+}
+];
+
+// ─────────────────────────────────────────────────────────── CONSTANTS
+const QUESTION_BUDGET = 12;
+
+// ─────────────────────────────────────────────────────────── STATE
+let scenario = null;
+let killer = null;
+let current = null;
+let asked = {};
+let clues = [];
+let accused = null;
+let questionsLeft = QUESTION_BUDGET;
+let evidenceRevealed = [];
+
+// ─────────────────────────────────────────────────────────── SCREENS
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  el.classList.add('active');
+}
+
+// ─────────────────────────────────────────────────────────── INTRO INIT
+function initScenario() {
+  scenario = SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)];
+  document.getElementById('intro-scene').innerHTML = scenario.svg();
+  document.getElementById('intro-title').textContent = scenario.title;
+  document.getElementById('intro-subtitle').textContent = scenario.subtitle;
+  document.getElementById('intro-setting').textContent = scenario.setting;
+  document.getElementById('intro-setup').innerHTML = scenario.intro;
+}
+
+// ─────────────────────────────────────────────────────────── START GAME
+function startGame() {
+  killer = scenario.suspects[Math.floor(Math.random() * scenario.suspects.length)];
+  current = null;
+  asked = {};
+  clues = [];
+  accused = null;
+  questionsLeft = QUESTION_BUDGET;
+  evidenceRevealed = [];
+
+  scenario.suspects.forEach(s => { asked[s.id] = new Array(s.qs.length).fill(false); });
+
+  document.getElementById('game-title').textContent = scenario.title;
+  buildSuspectList();
+  buildFacts();
+  buildAccuseGrid();
+  renderClues();
+  document.getElementById('evidence-section').style.display = 'none';
+  document.getElementById('new-evidence').innerHTML = '';
+  updateCounter();
+
+  show('game');
+  showPlaceholder();
+}
+
+function resetGame() {
+  initScenario();
+  show('intro');
+}
+
+// ─────────────────────────────────────────────────────────── COUNTER
+function updateCounter() {
+  const el = document.getElementById('q-counter');
+  const btn = document.getElementById('btn-accuse');
+  el.textContent = questionsLeft === 0 ? 'No questions left' : `${questionsLeft} question${questionsLeft===1?'':'s'} left`;
+  el.className = 'q-counter' + (questionsLeft === 0 ? ' done' : questionsLeft <= 3 ? ' danger' : questionsLeft <= 6 ? ' warn' : '');
+  if (questionsLeft === 0) {
+    btn.classList.add('pulse');
+    // Disable all remaining question buttons
+    document.querySelectorAll('.q-btn:not(.asked)').forEach(b => b.disabled = true);
+  }
+}
+
+// ─────────────────────────────────────────────────────────── BUILD UI
+function buildSuspectList() {
+  const el = document.getElementById('s-list');
+  el.innerHTML = '';
+  scenario.suspects.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 's-card'; card.id = `sc-${s.id}`;
+    card.onclick = () => selectSuspect(s.id);
+    const dots = s.qs.map((_, i) => `<div class="dot" id="d-${s.id}-${i}"></div>`).join('');
+    card.innerHTML = `<div class="s-avatar" style="background:${s.color}">${s.initial}</div>
+      <div class="s-info"><div class="s-name">${s.name}</div><div class="s-role">${s.role}</div>
+      <div class="s-dots">${dots}</div></div>`;
+    el.appendChild(card);
+  });
+}
+
+function buildFacts() {
+  document.getElementById('facts').innerHTML = scenario.facts.map(f => `<div class="fact">${f}</div>`).join('');
+}
+
+function buildAccuseGrid() {
+  const el = document.getElementById('accuse-grid');
+  el.innerHTML = '';
+  scenario.suspects.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'accuse-card'; card.id = `ac-${s.id}`;
+    card.onclick = () => pickAccused(s.id);
+    card.innerHTML = `<div class="accuse-avatar" style="background:${s.color}">${s.initial}</div>
+      <div class="accuse-name">${s.name}</div><div class="accuse-role">${s.role}</div>`;
+    el.appendChild(card);
+  });
+}
+
+// ─────────────────────────────────────────────────────────── SUSPECT SELECT
+function selectSuspect(id) {
+  current = id;
+  const s = scenario.suspects.find(x => x.id === id);
+  document.querySelectorAll('.s-card').forEach(c => c.classList.remove('active'));
+  document.getElementById(`sc-${id}`).classList.add('active');
+  document.getElementById('i-avatar').style.background = s.color;
+  document.getElementById('i-avatar').textContent = s.initial;
+  document.getElementById('i-name').textContent = s.name;
+  document.getElementById('i-role').textContent = s.role;
+  document.getElementById('i-desc').textContent = s.desc;
+
+  const qel = document.getElementById('q-buttons');
+  qel.innerHTML = '';
+  s.qs.forEach((qObj, i) => {
+    const btn = document.createElement('button');
+    const wasAsked = asked[id][i];
+    btn.className = 'q-btn' + (wasAsked ? ' asked' : '');
+    btn.textContent = qObj.q;
+    btn.disabled = wasAsked || questionsLeft === 0;
+    btn.onclick = () => askQuestion(id, i);
+    btn.id = `qb-${id}-${i}`;
+    qel.appendChild(btn);
+  });
+
+  const ael = document.getElementById('answers');
+  ael.innerHTML = '';
+  asked[id].forEach((wasAsked, i) => { if (wasAsked) appendAnswer(id, i, false); });
+  showMain();
+}
+
+function showPlaceholder() {
+  document.getElementById('i-placeholder').style.display = 'flex';
+  document.getElementById('i-main').style.display = 'none';
+}
+function showMain() {
+  document.getElementById('i-placeholder').style.display = 'none';
+  document.getElementById('i-main').style.display = 'flex';
+}
+
+// ─────────────────────────────────────────────────────────── ASKING
+function askQuestion(suspectId, qi) {
+  if (questionsLeft <= 0) return;
+  asked[suspectId][qi] = true;
+  questionsLeft--;
+
+  const btn = document.getElementById(`qb-${suspectId}-${qi}`);
+  btn.disabled = true; btn.classList.add('asked');
+  document.getElementById(`d-${suspectId}-${qi}`).classList.add('lit');
+
+  const s = scenario.suspects.find(x => x.id === suspectId);
+  const isKillerGuiltyQ = (killer.id === suspectId) && s.qs[qi].isGuilty;
+
+  if (isKillerGuiltyQ && !clues.find(c => c.id === suspectId)) {
+    clues.push({ id: suspectId, name: s.name, text: s.clue });
+    renderClues();
+  }
+
+  // Progressive evidence
+  const total = QUESTION_BUDGET - questionsLeft;
+  scenario.evidence.forEach(ev => {
+    if (total >= ev.after && !evidenceRevealed.includes(ev.after)) {
+      evidenceRevealed.push(ev.after);
+      revealEvidence(ev);
+    }
+  });
+
+  appendAnswer(suspectId, qi, true);
+  updateCounter();
+}
+
+function appendAnswer(suspectId, qi, animate) {
+  const s = scenario.suspects.find(x => x.id === suspectId);
+  const isKillerGuiltyQ = (killer.id === suspectId) && s.qs[qi].isGuilty;
+  const text = (isKillerGuiltyQ && s.qs[qi].guiltyA) ? s.qs[qi].guiltyA : s.qs[qi].a;
+
+  const block = document.createElement('div');
+  block.className = 'answer-block';
+  if (!animate) block.style.animation = 'none';
+  block.innerHTML = `<div class="answer-q">${s.qs[qi].q}</div>
+    <div class="answer-text${isKillerGuiltyQ ? ' suspicious' : ''}">"${text}"</div>`;
+  document.getElementById('answers').appendChild(block);
+  block.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+// ─────────────────────────────────────────────────────────── EVIDENCE
+function revealEvidence(ev) {
+  document.getElementById('evidence-section').style.display = 'block';
+  const el = document.createElement('div');
+  el.className = 'new-evidence ev-flash';
+  el.innerHTML = `<div class="ev-label">${ev.label}</div>${ev.text}`;
+  document.getElementById('new-evidence').appendChild(el);
+  el.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+// ─────────────────────────────────────────────────────────── CLUES
+function renderClues() {
+  const el = document.getElementById('clues');
+  el.innerHTML = clues.length === 0
+    ? '<div class="no-clues">None yet…</div>'
+    : clues.map(c => `<div class="clue-entry"><div class="clue-who">${c.name}</div>${c.text}</div>`).join('');
+}
+
+// ─────────────────────────────────────────────────────────── ACCUSATION
+function showAccuse() {
+  accused = null;
+  document.querySelectorAll('.accuse-card').forEach(c => c.classList.remove('picked'));
+  document.getElementById('btn-confirm').disabled = true;
+  show('accuse');
+}
+function cancelAccuse() { show('game'); }
+function pickAccused(id) {
+  accused = id;
+  document.querySelectorAll('.accuse-card').forEach(c => c.classList.remove('picked'));
+  document.getElementById(`ac-${id}`).classList.add('picked');
+  document.getElementById('btn-confirm').disabled = false;
+}
+function confirmAccuse() {
+  if (accused === null) return;
+  const correct = accused === killer.id;
+  const guessed = scenario.suspects.find(x => x.id === accused);
+  const resultEl = document.getElementById('result');
+  resultEl.className = 'screen ' + (correct ? 'correct-bg' : 'wrong-bg');
+  document.getElementById('r-stamp').textContent = correct ? 'Case Closed' : 'Case Unsolved';
+  document.getElementById('r-stamp').className = 'stamp ' + (correct ? 'correct' : 'wrong');
+  document.getElementById('r-icon').innerHTML = correct
+    ? `<svg width="52" height="52" viewBox="0 0 52 52" fill="none"><circle cx="22" cy="22" r="14" stroke="#4cc9a8" stroke-width="1.8"/><line x1="32" y1="32" x2="46" y2="46" stroke="#4cc9a8" stroke-width="2" stroke-linecap="round"/><path d="M16 22 L20 26 L28 18" stroke="#4cc9a8" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+    : `<svg width="52" height="52" viewBox="0 0 52 52" fill="none"><circle cx="26" cy="26" r="22" stroke="#c94c4c" stroke-width="1.8" stroke-dasharray="4 3" opacity=".7"/><line x1="18" y1="18" x2="34" y2="34" stroke="#c94c4c" stroke-width="2" stroke-linecap="round"/><line x1="34" y1="18" x2="18" y2="34" stroke="#c94c4c" stroke-width="2" stroke-linecap="round"/></svg>`;
+  document.getElementById('r-verdict').textContent = correct ? 'Case Closed.' : 'Wrong.';
+  document.getElementById('r-verdict').className = 'verdict ' + (correct ? 'correct' : 'wrong');
+  document.getElementById('r-sub').textContent = correct
+    ? `You correctly identified ${killer.name} as the killer.`
+    : `You accused ${guessed.name}. They were innocent.`;
+  document.getElementById('r-killer').textContent = `${killer.name} — ${killer.role}`;
+  document.getElementById('r-story').textContent = killer.story;
+  document.getElementById('r-tell').textContent = killer.clue;
+  show('result');
+  resultEl.classList.add('active');
+  document.getElementById('solver-form-wrap').style.display = correct ? 'block' : 'none';
+  document.getElementById('solver-name-input').value = '';
+  renderBoard(-1);
+}
+
+// ─────────────────────────────────────────────────────────── SOLVER BOARD
+const BOARD_KEY = 'mm_solvers';
+
+function loadBoard() {
+  try { return JSON.parse(localStorage.getItem(BOARD_KEY)) || []; }
+  catch(e) { return []; }
+}
+
+function saveEntry(name, scenarioTitle) {
+  const board = loadBoard();
+  const date = new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  board.unshift({ name: name.trim(), scenario: scenarioTitle, date });
+  localStorage.setItem(BOARD_KEY, JSON.stringify(board.slice(0, 100)));
+}
+
+function renderBoard(newestIndex) {
+  const board = loadBoard();
+  const wrap = document.getElementById('solver-board-wrap');
+  const el = document.getElementById('solver-list');
+  if (board.length === 0) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  el.innerHTML = board.map((e, i) =>
+    `<div class="solver-entry${i === newestIndex ? ' newest' : ''}">
+      <span class="solver-rank">${i + 1}.</span>
+      <span class="solver-name">${e.name}</span>
+      <span class="solver-scenario">${e.scenario}</span>
+      <span class="solver-date">${e.date}</span>
+    </div>`
+  ).join('');
+}
+
+function submitSolver() {
+  const input = document.getElementById('solver-name-input');
+  const name = input.value.trim();
+  if (!name) return;
+  saveEntry(name, scenario.title);
+  input.value = '';
+  document.getElementById('solver-form-wrap').style.display = 'none';
+  renderBoard(0);
+}
+
+// ─────────────────────────────────────────────────────────── INIT
+document.addEventListener('DOMContentLoaded', initScenario);
+</script>
+</body>
+</html>
