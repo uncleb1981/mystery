@@ -173,17 +173,51 @@
     .solver-scenario { font-size:.67rem; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:110px; }
     .solver-date { font-size:.65rem; color:var(--border); white-space:nowrap; flex-shrink:0; }
 
+    /* ── MOBILE TAB BAR (hidden on desktop) ── */
+    .mob-tabs { display:none; }
+
     /* ── MOBILE ── */
     @media (max-width:768px) {
-      .game-body { grid-template-columns:1fr; height:auto; overflow:visible; }
-      .suspect-list { border-right:none; border-bottom:1px solid var(--border); display:flex; flex-direction:row; overflow-x:auto; padding:.6rem; gap:.4rem; }
+      /* Game body: fixed-height flex column, panels fill remaining space */
+      .game-body { display:flex !important; flex-direction:column; grid-template-columns:unset; height:calc(100vh - 47px); overflow:hidden; }
+
+      /* Suspects: compact horizontal scroll row */
+      .suspect-list { flex-shrink:0; border-right:none; border-bottom:1px solid var(--border); overflow-x:auto; padding:.45rem .6rem; scrollbar-width:none; }
+      .suspect-list::-webkit-scrollbar { display:none; }
+      #s-list { display:flex; flex-direction:row; gap:.35rem; }
       .panel-label { display:none; }
-      .s-card { flex-direction:column; padding:.6rem .5rem; border-left:none; border-bottom:3px solid transparent; min-width:62px; text-align:center; gap:.3rem; align-items:center; }
-      .s-card.active { border-left:none; border-bottom-color:var(--gold); }
+      .s-card { flex-direction:column; padding:.5rem .5rem; border-left:none; border-bottom:2px solid transparent; width:60px; min-width:60px; text-align:center; gap:.2rem; align-items:center; flex-shrink:0; }
+      .s-card.active { border-left:none; border-bottom-color:var(--gold); background:var(--surface2); }
+      .s-avatar { width:30px; height:30px; font-size:.8rem; }
+      .s-name { font-size:.65rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; }
       .s-role { display:none; }
-      .case-notes { border-right:none; border-bottom:1px solid var(--border); }
+      .s-dots { justify-content:center; }
+
+      /* Tab bar */
+      .mob-tabs { display:flex; flex-shrink:0; background:var(--surface); border-bottom:1px solid var(--border); }
+      .mob-tab { flex:1; background:transparent; border:none; border-bottom:2px solid transparent; color:var(--text-dim); padding:.6rem .5rem; font-family:'Inter',sans-serif; font-size:.72rem; font-weight:500; letter-spacing:.1em; text-transform:uppercase; cursor:pointer; transition:all .15s; }
+      .mob-tab.active { color:var(--gold); border-bottom-color:var(--gold); }
+
+      /* Panels: fill remaining height, scroll internally */
+      .case-notes { flex:1; overflow-y:auto; border-right:none; }
+      .interrogation { flex:1; overflow-y:auto; }
+      .mob-hidden { display:none !important; }
+
+      /* Interrogation inner scroll */
+      .interro-main { overflow-y:auto; }
+
+      /* Accuse / Result: scrollable, not clipped */
+      #accuse { overflow-y:auto; justify-content:flex-start; padding:1.75rem 1rem; }
+      #result { overflow-y:auto; justify-content:flex-start; padding:1.75rem 1rem; }
       .accuse-grid { grid-template-columns:repeat(2,1fr); }
-      .game-body { min-height:calc(100vh - 47px); }
+      .result-box, .accuse-box { max-width:100%; }
+
+      /* Header: tighter on small screens */
+      .game-title { font-size:.85rem; }
+      .game-tag { display:none; }
+      .q-counter { font-size:.68rem; padding:.25rem .5rem; }
+      .btn-accuse { font-size:.66rem; padding:.38rem .8rem; }
+      .mag-icon { display:none; }
     }
   </style>
 </head>
@@ -224,6 +258,11 @@
     <div class="suspect-list">
       <div class="panel-label">Suspects</div>
       <div id="s-list"></div>
+    </div>
+
+    <div class="mob-tabs" id="mob-tabs">
+      <button class="mob-tab active" id="tab-notes" onclick="switchTab('notes')">&#128203; Case Notes</button>
+      <button class="mob-tab" id="tab-interrogate" onclick="switchTab('interrogate')">&#128269; Interrogate</button>
     </div>
 
     <div class="case-notes">
@@ -818,6 +857,7 @@ function startGame() {
 
   show('game');
   showPlaceholder();
+  switchTab('notes');
 }
 
 function resetGame() {
@@ -900,6 +940,7 @@ function selectSuspect(id) {
   ael.innerHTML = '';
   asked[id].forEach((wasAsked, i) => { if (wasAsked) appendAnswer(id, i, false); });
   showMain();
+  switchTab('interrogate');
 }
 
 function showPlaceholder() {
@@ -1012,6 +1053,15 @@ function confirmAccuse() {
   document.getElementById('solver-form-wrap').style.display = correct ? 'block' : 'none';
   document.getElementById('solver-name-input').value = '';
   renderBoard(-1);
+}
+
+// ─────────────────────────────────────────────────────────── MOBILE TABS
+function switchTab(tab) {
+  if (window.innerWidth > 768) return;
+  document.getElementById('tab-notes').classList.toggle('active', tab === 'notes');
+  document.getElementById('tab-interrogate').classList.toggle('active', tab === 'interrogate');
+  document.querySelector('.case-notes').classList.toggle('mob-hidden', tab !== 'notes');
+  document.getElementById('interrogation').classList.toggle('mob-hidden', tab !== 'interrogate');
 }
 
 // ─────────────────────────────────────────────────────────── SOLVER BOARD
